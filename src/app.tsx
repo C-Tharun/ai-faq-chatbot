@@ -1,10 +1,5 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: it's alright */
-import { useEffect, useState, useRef, useCallback, use } from "react";
-import { useAgent } from "agents/react";
-import { isToolUIPart } from "ai";
-import { useAgentChat } from "agents/ai-react";
-import type { UIMessage } from "@ai-sdk/react";
-import type { tools } from "./tools";
+import { useEffect, useState, useRef, useCallback, use, useMemo } from "react";
 
 // Component imports
 import { Button } from "@/components/button/Button";
@@ -13,7 +8,6 @@ import { Avatar } from "@/components/avatar/Avatar";
 import { Toggle } from "@/components/toggle/Toggle";
 import { Textarea } from "@/components/textarea/Textarea";
 import { MemoizedMarkdown } from "@/components/memoized-markdown";
-import { ToolInvocationCard } from "@/components/tool-invocation-card/ToolInvocationCard";
 
 // Icon imports
 import {
@@ -26,11 +20,13 @@ import {
   Stop
 } from "@phosphor-icons/react";
 
-// List of tools that require human confirmation
-// NOTE: this should match the tools that don't have execute functions in tools.ts
-const toolsRequiringConfirmation: (keyof typeof tools)[] = [
-  "getWeatherInformation"
-];
+type UIRole = "user" | "assistant";
+type UIMessageLocal = {
+  id: string;
+  role: UIRole;
+  text: string;
+  createdAt: string;
+};
 
 export default function Chat() {
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -70,66 +66,99 @@ export default function Chat() {
     setTheme(newTheme);
   };
 
-  const agent = useAgent({
-    agent: "chat"
-  });
-
-  const [agentInput, setAgentInput] = useState("");
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<UIMessageLocal[]>([]);
+  const [isSending, setIsSending] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const handleAgentInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setAgentInput(e.target.value);
+    setInput(e.target.value);
   };
 
   const handleAgentSubmit = async (
-    e: React.FormEvent,
-    extraData: Record<string, unknown> = {}
+    e: React.FormEvent
   ) => {
     e.preventDefault();
-    if (!agentInput.trim()) return;
+    if (!input.trim() || isSending) return;
 
-    const message = agentInput;
-    setAgentInput("");
-
-    // Send message to agent
-    await sendMessage(
-      {
-        role: "user",
-        parts: [{ type: "text", text: message }]
-      },
-      {
-        body: extraData
-      }
-    );
+    const userMsg: UIMessageLocal = {
+      id: crypto.randomUUID(),
+      role: "user",
+      text: input,
+      createdAt: new Date().toISOString()
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setIsSending(true);
+    try {
+      const resp = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMsg.text })
+      });
+      const data = await resp.json().catch(() => ({}));
+      const replyText = typeof data?.reply === "string" ? data.reply : "";
+      const botMsg: UIMessageLocal = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        text: replyText || "Sorry, I didn't understand.",
+        createdAt: new Date().toISOString()
+      };
+      setMessages((prev) => [...prev, botMsg]);
+    } catch (err) {
+      const botMsg: UIMessageLocal = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        text: "Error contacting server.",
+        createdAt: new Date().toISOString()
+      };
+      setMessages((prev) => [...prev, botMsg]);
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const {
-    messages: agentMessages,
-    addToolResult,
-    clearHistory,
-    status,
-    sendMessage,
-    stop
-  } = useAgentChat<unknown, UIMessage<{ createdAt: string }>>({
-    agent
-  });
+  const clearHistory = async () => {
+    try {
+      await fetch("/api/chat", { method: "DELETE" });
+      setMessages([]);
+    } catch (err) {
+      // no-op
+    }
+  };
+
+  const stop = () => {
+    // No streaming cancel for simple DO calls
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    agentMessages.length > 0 && scrollToBottom();
-  }, [agentMessages, scrollToBottom]);
+    messages.length > 0 && scrollToBottom();
+  }, [messages, scrollToBottom]);
 
-  const pendingToolCallConfirmation = agentMessages.some((m: UIMessage) =>
-    m.parts?.some(
-      (part) =>
-        isToolUIPart(part) &&
-        part.state === "input-available" &&
-        // Manual check inside the component
-        toolsRequiringConfirmation.includes(
-          part.type.replace("tool-", "") as keyof typeof tools
-        )
-    )
-  );
+  useEffect(() => {
+    // load existing history from DO
+    (async () => {
+      try {
+        const res = await fetch("/api/chat");
+        const data = await res.json().catch(() => ({}));
+        const history = Array.isArray(data?.history) ? data.history : [];
+        const mapped: UIMessageLocal[] = history.map((h: any) => ({
+          id: crypto.randomUUID(),
+          role: h.role === "bot" ? "assistant" : "user",
+          text: String(h.content ?? ""),
+          createdAt: new Date().toISOString()
+        }));
+        setMessages(mapped);
+      } catch (err) {
+        setLoadError("Failed to load history.");
+      }
+    })();
+  }, []);
+
+  const pendingToolCallConfirmation = false;
+  const status = useMemo(() => (isSending ? "submitted" : "idle"), [isSending]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -194,7 +223,7 @@ export default function Chat() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 max-h-[calc(100vh-10rem)]">
-          {agentMessages.length === 0 && (
+          {messages.length === 0 && (
             <div className="h-full flex items-center justify-center">
               <Card className="p-6 max-w-md mx-auto bg-neutral-100 dark:bg-neutral-900">
                 <div className="text-center space-y-4">
@@ -221,10 +250,9 @@ export default function Chat() {
             </div>
           )}
 
-          {agentMessages.map((m, index) => {
+          {messages.map((m, index) => {
             const isUser = m.role === "user";
-            const showAvatar =
-              index === 0 || agentMessages[index - 1]?.role !== m.role;
+            const showAvatar = index === 0 || messages[index - 1]?.role !== m.role;
 
             return (
               <div key={m.id}>
@@ -249,89 +277,24 @@ export default function Chat() {
 
                     <div>
                       <div>
-                        {m.parts?.map((part, i) => {
-                          if (part.type === "text") {
-                            return (
-                              // biome-ignore lint/suspicious/noArrayIndexKey: immutable index
-                              <div key={i}>
-                                <Card
-                                  className={`p-3 rounded-md bg-neutral-100 dark:bg-neutral-900 ${
-                                    isUser
-                                      ? "rounded-br-none"
-                                      : "rounded-bl-none border-assistant-border"
-                                  } ${
-                                    part.text.startsWith("scheduled message")
-                                      ? "border-accent/50"
-                                      : ""
-                                  } relative`}
-                                >
-                                  {part.text.startsWith(
-                                    "scheduled message"
-                                  ) && (
-                                    <span className="absolute -top-3 -left-2 text-base">
-                                      🕒
-                                    </span>
-                                  )}
-                                  <MemoizedMarkdown
-                                    id={`${m.id}-${i}`}
-                                    content={part.text.replace(
-                                      /^scheduled message: /,
-                                      ""
-                                    )}
-                                  />
-                                </Card>
-                                <p
-                                  className={`text-xs text-muted-foreground mt-1 ${
-                                    isUser ? "text-right" : "text-left"
-                                  }`}
-                                >
-                                  {formatTime(
-                                    m.metadata?.createdAt
-                                      ? new Date(m.metadata.createdAt)
-                                      : new Date()
-                                  )}
-                                </p>
-                              </div>
-                            );
-                          }
-
-                          if (isToolUIPart(part)) {
-                            const toolCallId = part.toolCallId;
-                            const toolName = part.type.replace("tool-", "");
-                            const needsConfirmation =
-                              toolsRequiringConfirmation.includes(
-                                toolName as keyof typeof tools
-                              );
-
-                            // Skip rendering the card in debug mode
-                            if (showDebug) return null;
-
-                            return (
-                              <ToolInvocationCard
-                                // biome-ignore lint/suspicious/noArrayIndexKey: using index is safe here as the array is static
-                                key={`${toolCallId}-${i}`}
-                                toolUIPart={part}
-                                toolCallId={toolCallId}
-                                needsConfirmation={needsConfirmation}
-                                onSubmit={({ toolCallId, result }) => {
-                                  addToolResult({
-                                    tool: part.type.replace("tool-", ""),
-                                    toolCallId,
-                                    output: result
-                                  });
-                                }}
-                                addToolResult={(toolCallId, result) => {
-                                  addToolResult({
-                                    tool: part.type.replace("tool-", ""),
-                                    toolCallId,
-                                    output: result
-                                  });
-                                }}
-                              />
-                            );
-                          }
-                          return null;
-                        })}
+                        <div>
+                          <Card
+                            className={`p-3 rounded-md bg-neutral-100 dark:bg-neutral-900 ${
+                              isUser
+                                ? "rounded-br-none"
+                                : "rounded-bl-none border-assistant-border"
+                            } relative`}
+                          >
+                            <MemoizedMarkdown id={`${m.id}`} content={m.text} />
+                          </Card>
+                          <p
+                            className={`text-xs text-muted-foreground mt-1 ${
+                              isUser ? "text-right" : "text-left"
+                            }`}
+                          >
+                            {formatTime(new Date(m.createdAt))}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -346,11 +309,7 @@ export default function Chat() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handleAgentSubmit(e, {
-              annotations: {
-                hello: "world"
-              }
-            });
+            handleAgentSubmit(e);
             setTextareaHeight("auto"); // Reset height after submission
           }}
           className="p-3 bg-neutral-50 absolute bottom-0 left-0 right-0 z-10 border-t border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900"
@@ -365,7 +324,7 @@ export default function Chat() {
                     : "Send a message..."
                 }
                 className="flex w-full border border-neutral-200 dark:border-neutral-700 px-3 py-2  ring-offset-background placeholder:text-neutral-500 dark:placeholder:text-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 dark:focus-visible:ring-neutral-700 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base pb-10 dark:bg-neutral-900"
-                value={agentInput}
+                value={input}
                 onChange={(e) => {
                   handleAgentInputChange(e);
                   // Auto-resize the textarea
@@ -388,7 +347,7 @@ export default function Chat() {
                 style={{ height: textareaHeight }}
               />
               <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
-                {status === "submitted" || status === "streaming" ? (
+                {status === "submitted" ? (
                   <button
                     type="button"
                     onClick={stop}
@@ -401,7 +360,7 @@ export default function Chat() {
                   <button
                     type="submit"
                     className="inline-flex items-center cursor-pointer justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border border-neutral-200 dark:border-neutral-800"
-                    disabled={pendingToolCallConfirmation || !agentInput.trim()}
+                    disabled={pendingToolCallConfirmation || !input.trim()}
                     aria-label="Send message"
                   >
                     <PaperPlaneTilt size={16} />
@@ -416,14 +375,14 @@ export default function Chat() {
   );
 }
 
-const hasOpenAiKeyPromise = fetch("/check-open-ai-key").then((res) =>
+const hasHfKeyPromise = fetch("/check-hf-key").then((res) =>
   res.json<{ success: boolean }>()
 );
 
 function HasOpenAIKey() {
-  const hasOpenAiKey = use(hasOpenAiKeyPromise);
+  const hasHfKey = use(hasHfKeyPromise);
 
-  if (!hasOpenAiKey.success) {
+  if (!hasHfKey.success) {
     return (
       <div className="fixed top-0 left-0 right-0 z-50 bg-red-500/10 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto p-4">
@@ -449,14 +408,14 @@ function HasOpenAIKey() {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2">
-                  OpenAI API Key Not Configured
+                  Hugging Face API Key Not Configured
                 </h3>
                 <p className="text-neutral-600 dark:text-neutral-300 mb-1">
                   Requests to the API, including from the frontend UI, will not
-                  work until an OpenAI API key is configured.
+                  work until a Hugging Face API key is configured.
                 </p>
                 <p className="text-neutral-600 dark:text-neutral-300">
-                  Please configure an OpenAI API key by setting a{" "}
+                  Please configure a Hugging Face API key by setting a{" "}
                   <a
                     href="https://developers.cloudflare.com/workers/configuration/secrets/"
                     target="_blank"
@@ -467,18 +426,9 @@ function HasOpenAIKey() {
                   </a>{" "}
                   named{" "}
                   <code className="bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded text-red-600 dark:text-red-400 font-mono text-sm">
-                    OPENAI_API_KEY
+                    HUGGINGFACE_API_KEY
                   </code>
-                  . <br />
-                  You can also use a different model provider by following these{" "}
-                  <a
-                    href="https://github.com/cloudflare/agents-starter?tab=readme-ov-file#use-a-different-ai-model-provider"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-red-600 dark:text-red-400"
-                  >
-                    instructions.
-                  </a>
+                  .
                 </p>
               </div>
             </div>
