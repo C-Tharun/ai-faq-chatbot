@@ -78,15 +78,15 @@ export class ChatSession {
           // 2) Cloudflare Workers AI if binding exists
           if (env.AI && typeof env.AI.run === "function") {
             try {
-              // Use a small, widely available instruct model
-              const model = "@cf/meta/llama-3.1-8b-instruct";
+              // Use the more powerful Llama 3.3 70B model with FP8 optimization
+              const model = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
               
               // Build conversation context with recent history
               const recentHistory = history.slice(-10); // Keep last 10 messages for context
               const messages = [
                 { 
                   role: "system", 
-                  content: "You are a helpful AI assistant. You have access to the conversation history and can reference previous messages for context. Be conversational and remember what was discussed earlier in this chat session." 
+                  content: "You are a helpful AI assistant with excellent memory and context awareness. You have access to the conversation history and can reference previous messages for context. Be conversational, engaging, and remember what was discussed earlier in this chat session. Provide detailed, helpful responses while maintaining a friendly tone." 
                 }
               ];
               
@@ -99,11 +99,27 @@ export class ChatSession {
                 }
               });
               
-              const result = await env.AI.run(model, { messages });
+              console.log(`[ChatSession] Using model: ${model} with ${messages.length} messages in context`);
+              
+              const result = await env.AI.run(model, { 
+                messages,
+                max_tokens: 1000,
+                temperature: 0.7
+              });
+              
               const responseText = (result && (result.response as string)) || "";
-              if (responseText.trim().length > 0) return responseText;
+              if (responseText.trim().length > 0) {
+                console.log(`[ChatSession] Successfully generated response with ${responseText.length} characters`);
+                return responseText;
+              } else {
+                console.warn("[ChatSession] Workers AI returned empty response");
+              }
             } catch (err) {
-              console.error("Workers AI error:", err);
+              console.error("[ChatSession] Workers AI error:", {
+                error: err,
+                message: err instanceof Error ? err.message : String(err),
+                stack: err instanceof Error ? err.stack : undefined
+              });
             }
           }
 
