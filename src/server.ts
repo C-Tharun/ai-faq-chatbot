@@ -22,7 +22,7 @@ export default {
       return new Response(
         JSON.stringify({ success: !!env.HUGGINGFACE_API_KEY }),
         {
-          headers: { "Content-Type": "application/json", ...corsHeaders },
+          headers: { "Content-Type": "application/json", ...corsHeaders }
         }
       );
     }
@@ -37,7 +37,10 @@ export default {
       const headers = new Headers(resp.headers);
       headers.set("Access-Control-Allow-Origin", "*");
       headers.set("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
-      headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      headers.set(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization"
+      );
       return new Response(resp.body, { status: resp.status, headers });
     }
 
@@ -47,5 +50,5 @@ export default {
     }
 
     return new Response("Not found", { status: 404, headers: corsHeaders });
-  },
+  }
 };

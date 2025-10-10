@@ -21,7 +21,7 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["Chat"]  // <-- SQLite-based Durable Object for free plan
+      "new_sqlite_classes": ["Chat"] // <-- SQLite-based Durable Object for free plan
     }
   ],
 

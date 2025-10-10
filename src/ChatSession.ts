@@ -29,10 +29,13 @@ export class ChatSession {
             : undefined;
 
         if (typeof userMessage !== "string") {
-          return new Response(JSON.stringify({ error: "Invalid request body" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({ error: "Invalid request body" }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            }
+          );
         }
 
         // Get chat history from storage
@@ -53,9 +56,9 @@ export class ChatSession {
                   method: "POST",
                   headers: {
                     Authorization: `Bearer ${env.HUGGINGFACE_API_KEY}`,
-                    "Content-Type": "application/json",
+                    "Content-Type": "application/json"
                   },
-                  body: JSON.stringify({ inputs: userMessage }),
+                  body: JSON.stringify({ inputs: userMessage })
                 }
               );
               const hfData = await hfResponse.json();
@@ -66,9 +69,13 @@ export class ChatSession {
               ) {
                 return hfData[0].generated_text as string;
               } else if (hfData && typeof hfData === "object") {
-                const obj = hfData as { generated_text?: string; choices?: { text?: string }[] };
+                const obj = hfData as {
+                  generated_text?: string;
+                  choices?: { text?: string }[];
+                };
                 if (obj.generated_text) return obj.generated_text;
-                if (Array.isArray(obj.choices) && obj.choices[0]?.text) return obj.choices[0].text as string;
+                if (Array.isArray(obj.choices) && obj.choices[0]?.text)
+                  return obj.choices[0].text as string;
               }
             } catch (err) {
               console.error("Hugging Face error:", err);
@@ -80,39 +87,47 @@ export class ChatSession {
             try {
               // Use the more powerful Llama 3.3 70B model with FP8 optimization
               const model = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-              
+
               // Build conversation context with recent history
               const recentHistory = history.slice(-10); // Keep last 10 messages for context
               const messages = [
-                { 
-                  role: "system", 
-                  content: "You are a helpful AI assistant with excellent memory and context awareness. You have access to the conversation history and can reference previous messages for context. Be conversational, engaging, and remember what was discussed earlier in this chat session. Provide detailed, helpful responses while maintaining a friendly tone." 
+                {
+                  role: "system",
+                  content:
+                    "You are a helpful AI assistant with excellent memory and context awareness. You have access to the conversation history and can reference previous messages for context. Be conversational, engaging, and remember what was discussed earlier in this chat session. Provide detailed, helpful responses while maintaining a friendly tone."
                 }
               ];
-              
+
               // Add conversation history
-              recentHistory.forEach(msg => {
+              recentHistory.forEach((msg) => {
                 if (msg.role === "user") {
                   messages.push({ role: "user", content: msg.content });
                 } else if (msg.role === "bot") {
                   messages.push({ role: "assistant", content: msg.content });
                 }
               });
-              
-              console.log(`[ChatSession] Using model: ${model} with ${messages.length} messages in context`);
-              
-              const result = await env.AI.run(model, { 
+
+              console.log(
+                `[ChatSession] Using model: ${model} with ${messages.length} messages in context`
+              );
+
+              const result = await env.AI.run(model, {
                 messages,
                 max_tokens: 1000,
                 temperature: 0.7
               });
-              
-              const responseText = (result && (result.response as string)) || "";
+
+              const responseText =
+                (result && (result.response as string)) || "";
               if (responseText.trim().length > 0) {
-                console.log(`[ChatSession] Successfully generated response with ${responseText.length} characters`);
+                console.log(
+                  `[ChatSession] Successfully generated response with ${responseText.length} characters`
+                );
                 return responseText;
               } else {
-                console.warn("[ChatSession] Workers AI returned empty response");
+                console.warn(
+                  "[ChatSession] Workers AI returned empty response"
+                );
               }
             } catch (err) {
               console.error("[ChatSession] Workers AI error:", {
@@ -125,8 +140,13 @@ export class ChatSession {
 
           // 3) Fallback echo with context awareness
           const recentMessages = history.slice(-3);
-          const contextInfo = recentMessages.length > 1 ? 
-            ` (Previous context: ${recentMessages.slice(0, -1).map(m => `${m.role}: ${m.content}`).join(', ')})` : '';
+          const contextInfo =
+            recentMessages.length > 1
+              ? ` (Previous context: ${recentMessages
+                  .slice(0, -1)
+                  .map((m) => `${m.role}: ${m.content}`)
+                  .join(", ")})`
+              : "";
           return `You said: ${userMessage}${contextInfo}`;
         };
 
@@ -138,7 +158,7 @@ export class ChatSession {
 
         return new Response(JSON.stringify({ reply: botReply }), {
           status: 200,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json" }
         });
       }
 
@@ -146,7 +166,7 @@ export class ChatSession {
         const history = (await this.storage.get("history")) || [];
         return new Response(JSON.stringify({ history }), {
           status: 200,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json" }
         });
       }
 
@@ -156,7 +176,7 @@ export class ChatSession {
       console.error("ChatSession error:", err);
       return new Response(JSON.stringify({ error: "Internal server error" }), {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" }
       });
     }
   }

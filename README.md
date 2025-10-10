@@ -6,7 +6,7 @@ A modern, animated AI chatbot built with Cloudflare Workers, featuring conversat
 
 - **🧠 Conversation Memory**: Maintains context across the chat session (last 10 messages)
 - **🎨 Modern Animated UI**: Glass morphism design with floating particles and smooth animations
-- **⚡ Multiple AI Providers**: 
+- **⚡ Multiple AI Providers**:
   - Primary: Cloudflare Workers AI (Llama 3.3 70B)
   - Fallback: Hugging Face API
   - Echo mode for testing
@@ -22,7 +22,7 @@ A modern, animated AI chatbot built with Cloudflare Workers, featuring conversat
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or pnpm
 - Cloudflare account with Workers AI enabled
 - Wrangler CLI
@@ -30,6 +30,7 @@ A modern, animated AI chatbot built with Cloudflare Workers, featuring conversat
 ### Installation
 
 1. **Clone and install dependencies**:
+
    ```bash
    git clone <your-repo>
    cd ai-faq-chatbot/agents-starter
@@ -37,17 +38,20 @@ A modern, animated AI chatbot built with Cloudflare Workers, featuring conversat
    ```
 
 2. **Configure Wrangler**:
+
    ```bash
    npx wrangler login
    ```
 
 3. **Set up AI bindings** (optional but recommended):
+
    ```bash
    # Optional: Set Hugging Face API key for fallback
    npx wrangler secret put HUGGINGFACE_API_KEY
    ```
 
 4. **Start local development**:
+
    ```bash
    npx wrangler dev
    ```
@@ -61,6 +65,7 @@ A modern, animated AI chatbot built with Cloudflare Workers, featuring conversat
 ### Deploy to Cloudflare Workers
 
 1. **Deploy the Worker**:
+
    ```bash
    npx wrangler deploy
    ```
@@ -80,22 +85,26 @@ The Worker uses these bindings (configured in `wrangler.jsonc`):
 ## 📡 API Endpoints
 
 ### `GET /api/chat`
+
 Retrieves chat history for the current session.
 
 **Response**:
+
 ```json
 {
   "history": [
-    {"role": "user", "content": "Hello"},
-    {"role": "bot", "content": "Hi there! How can I help you?"}
+    { "role": "user", "content": "Hello" },
+    { "role": "bot", "content": "Hi there! How can I help you?" }
   ]
 }
 ```
 
 ### `POST /api/chat`
+
 Sends a message to the AI and receives a response.
 
 **Request**:
+
 ```json
 {
   "message": "What's the weather like?"
@@ -103,6 +112,7 @@ Sends a message to the AI and receives a response.
 ```
 
 **Response**:
+
 ```json
 {
   "reply": "I don't have access to real-time weather data, but I'd be happy to help you find weather information for a specific location!"
@@ -110,14 +120,17 @@ Sends a message to the AI and receives a response.
 ```
 
 ### `DELETE /api/chat`
+
 Clears the chat history for the current session.
 
 **Response**: `204 No Content`
 
 ### `GET /check-hf-key`
+
 Health check endpoint to verify Hugging Face API key configuration.
 
 **Response**:
+
 ```json
 {
   "success": true
@@ -127,26 +140,30 @@ Health check endpoint to verify Hugging Face API key configuration.
 ## 🧠 AI Model Configuration
 
 ### Primary Model: Llama 3.3 70B
+
 - **Model**: `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
 - **Features**: 70B parameters, FP8 optimization for speed
 - **Context**: Maintains last 10 messages for conversation memory
-- **Parameters**: 
+- **Parameters**:
   - `max_tokens`: 1000
   - `temperature`: 0.7
 
 ### Fallback Options
+
 1. **Hugging Face API**: Uses `google/flan-t5-small` model
 2. **Echo Mode**: Returns user input with context information
 
 ## 🎨 UI Features
 
 ### Modern Design Elements
+
 - **Glass Morphism**: Frosted glass effect with backdrop blur
 - **Gradient Background**: Purple-blue gradient with animated particles
 - **Smooth Animations**: Slide-in effects, typing indicators, hover states
 - **Responsive Layout**: Mobile-first design with breakpoints
 
 ### Interactive Components
+
 - **Auto-resizing Textarea**: Grows with content
 - **Typing Indicators**: Animated dots during AI response
 - **Message Timestamps**: Shows when each message was sent
@@ -155,17 +172,20 @@ Health check endpoint to verify Hugging Face API key configuration.
 ## 🔧 Technical Architecture
 
 ### Frontend
+
 - **Pure HTML/CSS/JavaScript**: No framework dependencies
 - **Modern CSS**: Flexbox, Grid, CSS animations, backdrop-filter
 - **Responsive Design**: Mobile-first approach with media queries
 
 ### Backend
+
 - **Cloudflare Workers**: Edge computing platform
 - **Durable Objects**: Persistent storage for chat sessions
 - **Workers AI**: Integrated AI inference
 - **Static Assets**: Hosted UI files
 
 ### Storage
+
 - **Durable Object Storage**: Per-session chat history
 - **Session-based**: Memory resets on page refresh
 - **Context Window**: Last 10 messages maintained
@@ -173,11 +193,13 @@ Health check endpoint to verify Hugging Face API key configuration.
 ## 🚨 Error Handling
 
 ### AI Provider Failures
+
 1. **Workers AI Error**: Falls back to Hugging Face API
 2. **Hugging Face Error**: Falls back to echo mode
 3. **Complete Failure**: Returns error message to user
 
 ### Logging
+
 - **Structured Logging**: Detailed error information
 - **Request Tracking**: Model usage and response metrics
 - **Debug Information**: Context length and response quality
@@ -199,12 +221,14 @@ Health check endpoint to verify Hugging Face API key configuration.
 ## 🧪 Testing
 
 ### Manual Testing
+
 1. **Start conversation**: Send initial message
 2. **Test memory**: Ask follow-up questions
 3. **Clear chat**: Use delete button
 4. **Error handling**: Disconnect network to test fallbacks
 
 ### API Testing
+
 ```bash
 # Test GET endpoint
 curl https://ai-faq-chatbot.tharunc072.workers.dev/api/chat
@@ -221,6 +245,7 @@ curl -X DELETE https://ai-faq-chatbot.tharunc072.workers.dev/api/chat
 ## 📝 Development Notes
 
 ### File Structure
+
 ```
 agents-starter/
 ├── src/
@@ -234,6 +259,7 @@ agents-starter/
 ```
 
 ### Key Dependencies
+
 - **@cloudflare/workers-types**: TypeScript definitions
 - **Wrangler**: Development and deployment tool
 - **No external AI SDKs**: Uses native Workers AI binding

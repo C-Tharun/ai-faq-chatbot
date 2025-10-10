@@ -24,35 +24,35 @@ You are a helpful AI assistant with excellent memory and context awareness. You 
 
 **Purpose:**
 
-* Define AI personality and capabilities
-* Emphasize memory and context awareness
-* Instruct the model to reference conversation history
+- Define AI personality and capabilities
+- Emphasize memory and context awareness
+- Instruct the model to reference conversation history
 
 **Model:** `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
 
 **Parameters:**
 
-* `max_tokens`: 1000
-* `temperature`: 0.7
-* `context_window`: Last 10 messages
+- `max_tokens`: 1000
+- `temperature`: 0.7
+- `context_window`: Last 10 messages
 
 ---
 
 ## 👤 User Prompts
 
-* **Initial Development Request**
+- **Initial Development Request**
   **Prompt:**
 
   ```
   Hi
-  @https://ai-faq-chatbot.tharunc072.workers.dev/ 
+  @https://ai-faq-chatbot.tharunc072.workers.dev/
   {"history":[]}
   Only this is visible here...can you deploy the whole project
   ```
 
   **Context:** User requested full project deployment.
 
-* **Project Fix Request**
+- **Project Fix Request**
   **Prompt:**
 
   ```
@@ -61,7 +61,7 @@ You are a helpful AI assistant with excellent memory and context awareness. You 
 
   **Context:** Debugging chat interface issues.
 
-* **Memory Enhancement Request**
+- **Memory Enhancement Request**
   **Prompt:**
 
   ```
@@ -69,12 +69,11 @@ You are a helpful AI assistant with excellent memory and context awareness. You 
   ```
 
   **Requirements:**
+  - Session-based memory for context
+  - Memory resets on page refresh
+  - Modern, animated UI with graphics
 
-  * Session-based memory for context
-  * Memory resets on page refresh
-  * Modern, animated UI with graphics
-
-* **Final Enhancement Request**
+- **Final Enhancement Request**
   **Prompt:**
 
   ```
@@ -92,27 +91,27 @@ You are a helpful AI assistant with excellent memory and context awareness. You 
 
 ## 📝 Project Guidance Prompts
 
-* **Prompt:** How do I create an AI FAQ Chatbot project with Cloudflare Workers AI?
+- **Prompt:** How do I create an AI FAQ Chatbot project with Cloudflare Workers AI?
   **Purpose:** Initial project conception guidance
   **Outcome:** Defined project structure, stack, and tools
 
-* **Prompt:** How do I add session-based memory for AI chat?
+- **Prompt:** How do I add session-based memory for AI chat?
   **Purpose:** Guidance on context-aware memory
   **Outcome:** Implemented Durable Objects to store last 10 messages per session
 
-* **Prompt:** How can I make the UI modern, animated, and responsive?
+- **Prompt:** How can I make the UI modern, animated, and responsive?
   **Purpose:** UI/UX enhancement guidance
   **Outcome:** Added animated particles, glass morphism, sliding messages, gradients, responsive design
 
-* **Prompt:** How do I integrate Workers AI with Llama 3.3?
+- **Prompt:** How do I integrate Workers AI with Llama 3.3?
   **Purpose:** Model integration guidance
   **Outcome:** Switched primary AI model to `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
 
-* **Prompt:** What fallback options should I include if Workers AI fails?
+- **Prompt:** What fallback options should I include if Workers AI fails?
   **Purpose:** Reliability and error handling
   **Outcome:** Added Hugging Face API and echo mode fallback
 
-* **Prompt:** How should I document all AI prompts used?
+- **Prompt:** How should I document all AI prompts used?
   **Purpose:** Project submission documentation
   **Outcome:** Created PROMPTS.md and README.md with system messages and development prompts
 
@@ -120,24 +119,24 @@ You are a helpful AI assistant with excellent memory and context awareness. You 
 
 ## 🛠️ Development Prompts
 
-* **Initial Setup Prompt:** Scan config and entrypoints to prepare deploy steps
-* **Memory Implementation Prompt:** Add session-based memory (last 10 messages) with `ChatSession`
-* **UI Enhancement Prompt:** Modern, animated UI with motion graphics
-* **Model Upgrade Prompt:** Switch to `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
-* **Fallback Implementation Prompt:** Add Hugging Face API and echo mode fallback
-* **Error Logging Prompt:** Add structured logging for errors and AI usage
-* **Debugging Prompt:** Scan project for errors preventing chat functionality
-* **Deployment Query Prompt:** Confirm full project deployment
-* **Documentation Prompt:** Add all AI prompts used to PROMPTS.md
-* **Project Completion Summary Prompt:** Summarize memory, UI, model, fallback, and testing
+- **Initial Setup Prompt:** Scan config and entrypoints to prepare deploy steps
+- **Memory Implementation Prompt:** Add session-based memory (last 10 messages) with `ChatSession`
+- **UI Enhancement Prompt:** Modern, animated UI with motion graphics
+- **Model Upgrade Prompt:** Switch to `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
+- **Fallback Implementation Prompt:** Add Hugging Face API and echo mode fallback
+- **Error Logging Prompt:** Add structured logging for errors and AI usage
+- **Debugging Prompt:** Scan project for errors preventing chat functionality
+- **Deployment Query Prompt:** Confirm full project deployment
+- **Documentation Prompt:** Add all AI prompts used to PROMPTS.md
+- **Project Completion Summary Prompt:** Summarize memory, UI, model, fallback, and testing
 
 ---
 
 ## ⚙️ Model Configuration
 
-* **Workers AI Model:** `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
+- **Workers AI Model:** `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
 
-* **Parameters:**
+- **Parameters:**
 
   ```javascript
   {
@@ -150,8 +149,8 @@ You are a helpful AI assistant with excellent memory and context awareness. You 
   }
   ```
 
-* **Context Management:** Last 10 messages preserved per session
+- **Context Management:** Last 10 messages preserved per session
 
-* **Fallback Model (Hugging Face):** `google/flan-t5-small`
+- **Fallback Model (Hugging Face):** `google/flan-t5-small`
 
-* **Echo Mode (Final Fallback):** `You said: ${userMessage} (Previous context: ...)`
+- **Echo Mode (Final Fallback):** `You said: ${userMessage} (Previous context: ...)`

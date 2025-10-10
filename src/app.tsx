@@ -81,9 +81,7 @@ export default function Chat() {
     setInput(e.target.value);
   };
 
-  const handleAgentSubmit = async (
-    e?: React.FormEvent
-  ) => {
+  const handleAgentSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim() || isSending) return;
 
@@ -147,7 +145,9 @@ export default function Chat() {
     (async () => {
       try {
         const res = await fetch(`${apiBase}/api/chat`);
-        const data = (await res.json().catch(() => ({}))) as { history?: Array<{ role: string; content: string }> };
+        const data = (await res.json().catch(() => ({}))) as {
+          history?: Array<{ role: string; content: string }>;
+        };
         const history = Array.isArray(data.history) ? data.history : [];
         const mapped: UIMessageLocal[] = history.map((h: any) => ({
           id: crypto.randomUUID(),
@@ -257,7 +257,8 @@ export default function Chat() {
 
           {messages.map((m, index) => {
             const isUser = m.role === "user";
-            const showAvatar = index === 0 || messages[index - 1]?.role !== m.role;
+            const showAvatar =
+              index === 0 || messages[index - 1]?.role !== m.role;
 
             return (
               <div key={m.id}>
@@ -311,9 +312,7 @@ export default function Chat() {
         </div>
 
         {/* Input Area */}
-        <div
-          className="p-3 bg-neutral-50 absolute bottom-0 left-0 right-0 z-10 border-t border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900"
-        >
+        <div className="p-3 bg-neutral-50 absolute bottom-0 left-0 right-0 z-10 border-t border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900">
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
               <Textarea
@@ -380,10 +379,10 @@ export default function Chat() {
 }
 
 const hasHfKeyPromise = fetch(
-  (import.meta as any)?.env?.DEV ? "http://127.0.0.1:8787/check-hf-key" : "/check-hf-key"
-).then((res) =>
-  res.json<{ success: boolean }>()
-);
+  (import.meta as any)?.env?.DEV
+    ? "http://127.0.0.1:8787/check-hf-key"
+    : "/check-hf-key"
+).then((res) => res.json<{ success: boolean }>());
 
 function HasOpenAIKey() {
   const hasHfKey = use(hasHfKeyPromise);
