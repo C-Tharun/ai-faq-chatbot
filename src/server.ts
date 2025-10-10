@@ -41,14 +41,11 @@ export default {
       return new Response(resp.body, { status: resp.status, headers });
     }
 
-    // Fallback: UI or unknown -> forward to DO root so POST/GET/DELETE still work
-    const id = env.Chat.idFromName("default");
-    const obj = env.Chat.get(id);
-    const resp = await obj.fetch(request);
-    const headers = new Headers(resp.headers);
-    headers.set("Access-Control-Allow-Origin", "*");
-    headers.set("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
-    headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    return new Response(resp.body, { status: resp.status, headers });
+    // Serve static assets (SPA) for all non-API routes
+    if (!url.pathname.startsWith("/api/")) {
+      return env.ASSETS.fetch(request);
+    }
+
+    return new Response("Not found", { status: 404, headers: corsHeaders });
   },
 };

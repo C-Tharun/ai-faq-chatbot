@@ -80,12 +80,26 @@ export class ChatSession {
             try {
               // Use a small, widely available instruct model
               const model = "@cf/meta/llama-3.1-8b-instruct";
-              const result = await env.AI.run(model, {
-                messages: [
-                  { role: "system", content: "You are a concise assistant." },
-                  { role: "user", content: userMessage },
-                ],
+              
+              // Build conversation context with recent history
+              const recentHistory = history.slice(-10); // Keep last 10 messages for context
+              const messages = [
+                { 
+                  role: "system", 
+                  content: "You are a helpful AI assistant. You have access to the conversation history and can reference previous messages for context. Be conversational and remember what was discussed earlier in this chat session." 
+                }
+              ];
+              
+              // Add conversation history
+              recentHistory.forEach(msg => {
+                if (msg.role === "user") {
+                  messages.push({ role: "user", content: msg.content });
+                } else if (msg.role === "bot") {
+                  messages.push({ role: "assistant", content: msg.content });
+                }
               });
+              
+              const result = await env.AI.run(model, { messages });
               const responseText = (result && (result.response as string)) || "";
               if (responseText.trim().length > 0) return responseText;
             } catch (err) {
@@ -93,8 +107,11 @@ export class ChatSession {
             }
           }
 
-          // 3) Fallback echo
-          return `You said: ${userMessage}`;
+          // 3) Fallback echo with context awareness
+          const recentMessages = history.slice(-3);
+          const contextInfo = recentMessages.length > 1 ? 
+            ` (Previous context: ${recentMessages.slice(0, -1).map(m => `${m.role}: ${m.content}`).join(', ')})` : '';
+          return `You said: ${userMessage}${contextInfo}`;
         };
 
         botReply = await tryProvidersInOrder();

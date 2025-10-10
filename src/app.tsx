@@ -66,10 +66,15 @@ export default function Chat() {
     setTheme(newTheme);
   };
 
+  const apiBase = useMemo(() => {
+    // Use Worker origin in dev, relative in prod
+    return (import.meta as any)?.env?.DEV ? "http://127.0.0.1:8787" : "";
+  }, []);
+
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<UIMessageLocal[]>([]);
   const [isSending, setIsSending] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // const [loadError, setLoadError] = useState<string | null>(null);
   const handleAgentInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -77,9 +82,9 @@ export default function Chat() {
   };
 
   const handleAgentSubmit = async (
-    e: React.FormEvent
+    e?: React.FormEvent
   ) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!input.trim() || isSending) return;
 
     const userMsg: UIMessageLocal = {
@@ -92,13 +97,13 @@ export default function Chat() {
     setInput("");
     setIsSending(true);
     try {
-      const resp = await fetch("/api/chat", {
+      const resp = await fetch(`${apiBase}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMsg.text })
       });
-      const data = await resp.json().catch(() => ({}));
-      const replyText = typeof data?.reply === "string" ? data.reply : "";
+      const data = (await resp.json().catch(() => ({}))) as { reply?: string };
+      const replyText = typeof data.reply === "string" ? data.reply : "";
       const botMsg: UIMessageLocal = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -121,7 +126,7 @@ export default function Chat() {
 
   const clearHistory = async () => {
     try {
-      await fetch("/api/chat", { method: "DELETE" });
+      await fetch(`${apiBase}/api/chat`, { method: "DELETE" });
       setMessages([]);
     } catch (err) {
       // no-op
@@ -141,9 +146,9 @@ export default function Chat() {
     // load existing history from DO
     (async () => {
       try {
-        const res = await fetch("/api/chat");
-        const data = await res.json().catch(() => ({}));
-        const history = Array.isArray(data?.history) ? data.history : [];
+        const res = await fetch(`${apiBase}/api/chat`);
+        const data = (await res.json().catch(() => ({}))) as { history?: Array<{ role: string; content: string }> };
+        const history = Array.isArray(data.history) ? data.history : [];
         const mapped: UIMessageLocal[] = history.map((h: any) => ({
           id: crypto.randomUUID(),
           role: h.role === "bot" ? "assistant" : "user",
@@ -152,10 +157,10 @@ export default function Chat() {
         }));
         setMessages(mapped);
       } catch (err) {
-        setLoadError("Failed to load history.");
+        // ignore
       }
     })();
-  }, []);
+  }, [apiBase]);
 
   const pendingToolCallConfirmation = false;
   const status = useMemo(() => (isSending ? "submitted" : "idle"), [isSending]);
@@ -306,12 +311,7 @@ export default function Chat() {
         </div>
 
         {/* Input Area */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleAgentSubmit(e);
-            setTextareaHeight("auto"); // Reset height after submission
-          }}
+        <div
           className="p-3 bg-neutral-50 absolute bottom-0 left-0 right-0 z-10 border-t border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900"
         >
           <div className="flex items-center gap-2">
@@ -358,10 +358,14 @@ export default function Chat() {
                   </button>
                 ) : (
                   <button
-                    type="submit"
+                    type="button"
                     className="inline-flex items-center cursor-pointer justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border border-neutral-200 dark:border-neutral-800"
                     disabled={pendingToolCallConfirmation || !input.trim()}
                     aria-label="Send message"
+                    onClick={async () => {
+                      await handleAgentSubmit();
+                      setTextareaHeight("auto");
+                    }}
                   >
                     <PaperPlaneTilt size={16} />
                   </button>
@@ -369,13 +373,15 @@ export default function Chat() {
               </div>
             </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
 }
 
-const hasHfKeyPromise = fetch("/check-hf-key").then((res) =>
+const hasHfKeyPromise = fetch(
+  (import.meta as any)?.env?.DEV ? "http://127.0.0.1:8787/check-hf-key" : "/check-hf-key"
+).then((res) =>
   res.json<{ success: boolean }>()
 );
 
