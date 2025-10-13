@@ -1,4 +1,5 @@
 # 🤖 AI FAQ Chatbot
+[🌐 Live Demo](https://ai-faq-chatbot.tharunc072.workers.dev/)
 
 A modern, animated AI chatbot built with Cloudflare Workers, featuring conversation memory, beautiful UI, and multiple AI provider support.
 
