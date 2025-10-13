@@ -1,13 +1,19 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: it's alright */
 import { useEffect, useState, useRef, useCallback, use, useMemo } from "react";
-
-// Component imports
 import { Button } from "@/components/button/Button";
 import { Card } from "@/components/card/Card";
 import { Avatar } from "@/components/avatar/Avatar";
 import { Toggle } from "@/components/toggle/Toggle";
 import { Textarea } from "@/components/textarea/Textarea";
 import { MemoizedMarkdown } from "@/components/memoized-markdown";
+import { VoiceInput } from "@/components/voice/VoiceInput";
+import { ModeSelector } from "@/components/mode/ModeSelector";
+import { StartupScreen } from "@/components/startup/StartupScreen";
+import { InfoNotepadLeft } from "@/components/notepad/InfoNotepadLeft";
+import { InfoNotepadRight } from "@/components/notepad/InfoNotepadRight";
+import { EdgeBadge } from "@/components/badges/EdgeBadge";
+import { HeroHeader } from "@/components/orbit-site/HeroHeader";
+import { BackgroundScene } from "@/components/orbit-site/BackgroundScene";
 
 // Icon imports
 import {
@@ -29,6 +35,7 @@ type UIMessageLocal = {
 };
 
 export default function Chat() {
+  const [bootDone, setBootDone] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     // Check localStorage first, default to dark if not found
     const savedTheme = localStorage.getItem("theme");
@@ -74,6 +81,14 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<UIMessageLocal[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState<boolean>(() => {
+    const saved = sessionStorage.getItem("tts-enabled");
+    return saved ? saved === "true" : false;
+  });
+  const [mode, setMode] = useState<"Professional" | "Friendly" | "Techy">(() => {
+    const saved = sessionStorage.getItem("ai-mode");
+    return (saved as any) || "Professional";
+  });
   // const [loadError, setLoadError] = useState<string | null>(null);
   const handleAgentInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -169,10 +184,33 @@ export default function Chat() {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
+  // Speak assistant replies when TTS is enabled and supported
+  useEffect(() => {
+    if (!ttsEnabled) return;
+    // Observe last assistant message
+    const last = [...messages].reverse().find((m) => m.role === "assistant");
+    if (!last) return;
+    if (!("speechSynthesis" in window)) return;
+    try {
+      const utterance = new SpeechSynthesisUtterance(last.text);
+      // Change voice characteristics by mode
+      if (mode === "Friendly") utterance.rate = 1.05;
+      if (mode === "Techy") utterance.pitch = 0.9;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    } catch {}
+  }, [messages, ttsEnabled, mode]);
+
   return (
-    <div className="h-[100vh] w-full p-4 flex justify-center items-center bg-fixed overflow-hidden">
+    <div className="h-[100vh] w-full p-4 flex justify-center items-center bg-fixed overflow-hidden relative">
+      {!bootDone && <StartupScreen onDone={() => setBootDone(true)} />}
+      <InfoNotepadLeft />
+      <InfoNotepadRight />
+      <EdgeBadge />
+      <BackgroundScene />
       <HasOpenAIKey />
-      <div className="h-[calc(100vh-2rem)] w-full mx-auto max-w-lg flex flex-col shadow-xl rounded-md overflow-hidden relative border border-neutral-300 dark:border-neutral-800">
+      <div className="h-[calc(100vh-2rem)] w-full mx-auto max-w-lg flex flex-col shadow-xl rounded-2xl overflow-hidden relative border border-neutral-200/70 dark:border-neutral-800/70 bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md">
+        <HeroHeader />
         <div className="px-4 py-3 border-b border-neutral-300 dark:border-neutral-800 flex items-center gap-3 sticky top-0 z-10">
           <div className="flex items-center justify-center h-8 w-8">
             <svg
@@ -192,8 +230,9 @@ export default function Chat() {
             </svg>
           </div>
 
-          <div className="flex-1">
+          <div className="flex-1 flex items-center gap-3">
             <h2 className="font-semibold text-base">AI Chat Agent</h2>
+            <ModeSelector value={mode} onChange={(m) => setMode(m)} />
           </div>
 
           <div className="flex items-center gap-2 mr-2">
@@ -267,9 +306,7 @@ export default function Chat() {
                     {JSON.stringify(m, null, 2)}
                   </pre>
                 )}
-                <div
-                  className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-                >
+                <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`flex gap-2 max-w-[85%] ${
                       isUser ? "flex-row-reverse" : "flex-row"
@@ -285,7 +322,7 @@ export default function Chat() {
                       <div>
                         <div>
                           <Card
-                            className={`p-3 rounded-md bg-neutral-100 dark:bg-neutral-900 ${
+                            className={`p-3 rounded-xl bg-neutral-100/70 dark:bg-neutral-900/70 ${
                               isUser
                                 ? "rounded-br-none"
                                 : "rounded-bl-none border-assistant-border"
@@ -371,6 +408,14 @@ export default function Chat() {
                 )}
               </div>
             </div>
+            <VoiceInput
+              onTranscription={(text) => setInput((prev) => (prev ? prev + " " + text : text))}
+              ttsEnabled={ttsEnabled}
+              onToggleTts={(val) => {
+                setTtsEnabled(val);
+                sessionStorage.setItem("tts-enabled", String(val));
+              }}
+            />
           </div>
         </div>
       </div>

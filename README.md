@@ -13,6 +13,10 @@ A modern, animated AI chatbot built with Cloudflare Workers, featuring conversat
 - **📱 Responsive Design**: Works perfectly on desktop and mobile
 - **🔄 Real-time Features**: Typing indicators, smooth message animations
 - **💾 Persistent Storage**: Chat history persists during session using Durable Objects
+- **🎙️ Voice**: Web Speech API mic input + optional Text‑to‑Speech
+- **🗒️ Notepads**: Animated sticky notes with project + feature info
+- **💡 Modes**: Personality switcher (Professional, Friendly, Techy)
+- **🌐 Edge Badge**: Shows Cloudflare Edge region/colo
 
 ## 🚀 Live Demo
 
@@ -126,6 +130,14 @@ Clears the chat history for the current session.
 **Response**: `204 No Content`
 
 ### `GET /check-hf-key`
+### `GET /edge-info`
+
+Returns basic region information for the edge location handling the request (when available).
+
+```json
+{ "colo": "BOM", "city": "Mumbai" }
+```
+
 
 Health check endpoint to verify Hugging Face API key configuration.
 
@@ -161,6 +173,16 @@ Health check endpoint to verify Hugging Face API key configuration.
 - **Gradient Background**: Purple-blue gradient with animated particles
 - **Smooth Animations**: Slide-in effects, typing indicators, hover states
 - **Responsive Layout**: Mobile-first design with breakpoints
+- **Startup Screen**: Short boot sequence animation on load
+
+### New Components
+
+- `src/components/voice/VoiceInput.tsx` – Web Speech mic button, optional TTS toggle
+- `src/components/mode/ModeSelector.tsx` – Session-persisted personality mode
+- `src/components/startup/StartupScreen.tsx` – Boot animation
+- `src/components/notepad/InfoNotepadLeft.tsx` – Project sticky note
+- `src/components/notepad/InfoNotepadRight.tsx` – Features sticky note
+- `src/components/badges/EdgeBadge.tsx` – Cloudflare edge region badge
 
 ### Interactive Components
 
@@ -173,8 +195,8 @@ Health check endpoint to verify Hugging Face API key configuration.
 
 ### Frontend
 
-- **Pure HTML/CSS/JavaScript**: No framework dependencies
-- **Modern CSS**: Flexbox, Grid, CSS animations, backdrop-filter
+- **React + Tailwind + Framer Motion**: Animations and modern UI primitives
+- **Modern CSS**: Flexbox, CSS animations, backdrop-filter
 - **Responsive Design**: Mobile-first approach with media queries
 
 ### Backend
@@ -183,6 +205,7 @@ Health check endpoint to verify Hugging Face API key configuration.
 - **Durable Objects**: Persistent storage for chat sessions
 - **Workers AI**: Integrated AI inference
 - **Static Assets**: Hosted UI files
+- **Edge Meta**: `/edge-info` endpoint exposes `request.cf` colo/city
 
 ### Storage
 

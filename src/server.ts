@@ -27,6 +27,16 @@ export default {
       );
     }
 
+    // Edge/colo info for badge (uses request.cf when available)
+    if (url.pathname === "/edge-info") {
+      // In Cloudflare Workers, request.cf contains colo and city when routed through the edge
+      const cf = (request as any).cf || {};
+      return new Response(
+        JSON.stringify({ colo: cf.colo, city: cf.city }),
+        { headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     // Route chat API to Durable Object
     if (url.pathname === "/api/chat") {
       const id = env.Chat.idFromName("default");
